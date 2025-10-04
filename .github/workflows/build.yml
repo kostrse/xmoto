@@ -49,3 +49,67 @@ jobs:
           cmake --build .
 
           ccache -s
+
+
+  macos-arm64:
+    name: Build macOS (arm64)
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: ./.github/workflows/deps/macos.sh
+
+      - name: Configure build
+        run: |
+          mkdir build
+          cd build
+
+          # CMAKE_FIND_FRAMEWORK=LAST needs to be set to fix
+          # a header/dylib version mismatch caused by Mono being present:
+          # https://gitlab.kitware.com/cmake/cmake/-/issues/18921#note_601123
+          cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_FIND_FRAMEWORK=LAST \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DBUILD_MACOS_BUNDLE=ON \
+            -G Ninja \
+            ..
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build .
+
+
+  macos-x86_64:
+    name: Build macOS (x86_64)
+    runs-on: macos-13
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: ./.github/workflows/deps/macos.sh
+
+      - name: Configure build
+        run: |
+          mkdir build
+          cd build
+
+          # CMAKE_FIND_FRAMEWORK=LAST needs to be set to fix
+          # a header/dylib version mismatch caused by Mono being present:
+          # https://gitlab.kitware.com/cmake/cmake/-/issues/18921#note_601123
+          cmake \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_FIND_FRAMEWORK=LAST \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DBUILD_MACOS_BUNDLE=ON \
+            -G Ninja \
+            ..
+
+      - name: Build
+        run: |
+          cd build
+          cmake --build .
