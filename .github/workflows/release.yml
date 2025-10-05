@@ -171,7 +171,7 @@ jobs:
           cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_FIND_FRAMEWORK=LAST \
-            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
             -DBUILD_MACOS_BUNDLE=ON \
             -G Ninja \
             ..
@@ -189,7 +189,11 @@ jobs:
           mkdir -p "$release_dir"
 
           cpack -G DragNDrop
-          mv -- xmoto-*.dmg "$release_dir/"
+          
+          # List generated files for debugging
+          ls -la xmoto-*.dmg || echo "No DMG files found"
+          
+          mv xmoto-*.dmg "$release_dir/"
 
       - uses: softprops/action-gh-release@v1
         with:
