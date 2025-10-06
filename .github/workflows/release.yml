@@ -49,10 +49,11 @@ jobs:
           release_dir="${{ github.workspace }}/release/linux"
           mkdir -p "$release_dir"
 
+          # linuxdeploy can return non-zero exit code even on success
           ./linuxdeploy-x86_64.AppImage \
             --appdir="AppDir" \
             --desktop-file="AppDir/usr/share/applications/xmoto.desktop" \
-            --icon-file="AppDir/usr/share/pixmaps/xmoto.png"
+            --icon-file="AppDir/usr/share/pixmaps/xmoto.png" || true
 
           ./appimagetool-x86_64.AppImage \
             AppDir \
@@ -144,7 +145,15 @@ jobs:
 
 
   macos:
-    runs-on: macos-15
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            arch: x86_64
+          - os: macos-15
+            arch: arm64
 
     steps:
       - uses: actions/checkout@v3
@@ -160,16 +169,10 @@ jobs:
           # CMAKE_FIND_FRAMEWORK=LAST needs to be set to fix
           # a header/dylib version mismatch caused by Mono being present:
           # https://gitlab.kitware.com/cmake/cmake/-/issues/18921#note_601123
-          
-          # Build universal binary for both arm64 and x86_64
-          # This creates a single .dmg that works on both Apple Silicon and Intel Macs
-          # Alternative: To build separate binaries, use a matrix strategy with different
-          # runners (macos-15 for arm64, macos-13 for x86_64) and set
-          # -DCMAKE_OSX_ARCHITECTURES to the native architecture or omit it
           cmake \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_FIND_FRAMEWORK=LAST \
-            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
+            -DCMAKE_OSX_ARCHITECTURES="${{ matrix.arch }}" \
             -DBUILD_MACOS_BUNDLE=ON \
             -G Ninja \
             ..
@@ -186,11 +189,12 @@ jobs:
           release_dir="${{ github.workspace }}/release/macos"
           mkdir -p "$release_dir"
 
-          source ${{ github.workspace }}/.github/workflows/pkg.sh
-
           cpack -G DragNDrop
-          for pkg in xmoto-*.dmg; do append_pkg_name "$pkg" "macos"; done
-          mv -- xmoto-*.dmg "$release_dir/"
+          
+          # List generated files for debugging
+          ls -la xmoto-*.dmg || echo "No DMG files found"
+          
+          mv xmoto-*.dmg "$release_dir/"
 
       - uses: softprops/action-gh-release@v1
         with:
